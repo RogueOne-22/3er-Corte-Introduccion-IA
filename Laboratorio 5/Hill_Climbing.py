@@ -4,7 +4,7 @@ import seaborn as sns
 import networkx as nx
 import random
 from matplotlib.animation import FuncAnimation
-# --- IMPORTAR EL WIDGET DE BOTÓN ---
+
 from matplotlib.widgets import Button
 import warnings
 
@@ -180,17 +180,15 @@ def animate_climbing_in_ax(ax_anim, history, matrix):
     bbox = ax_anim.get_position()
     fig = ax_anim.figure
     
-    # --- MODIFICACIÓN ---
-    # Eliminar el inset anterior si existe, antes de crear uno nuevo
     if hasattr(ax_anim, '_inset_ax'):
         try:
             ax_anim._inset_ax.remove()
         except:
-            pass # Ignorar si ya fue removido
+            pass 
             
     inset_ax = fig.add_axes([bbox.x0 + bbox.width*0.05, bbox.y0 + bbox.height*0.02, bbox.width*0.45, bbox.height*0.28])
-    ax_anim._inset_ax = inset_ax # Guardar referencia al inset
-    # --- FIN MODIFICACIÓN ---
+    ax_anim._inset_ax = inset_ax 
+
     
     inset_ax.set_title("Score", fontsize=9)
     inset_ax.set_xlabel("Iter", fontsize=8)
@@ -198,7 +196,7 @@ def animate_climbing_in_ax(ax_anim, history, matrix):
     inset_ax.grid(True, linestyle='--')
     inset_line, = inset_ax.plot([], [], marker='o', linestyle='-', color='b')
 
-    # precalcular rangos globales
+
     all_indiv_sats = [calculate_individual_satisfaction(p, arr, matrix) for arr in history_arrs for p in arr]
     global_min_sat = min(all_indiv_sats) if all_indiv_sats else 0
     global_max_sat = max(all_indiv_sats) if all_indiv_sats else 1
@@ -220,7 +218,7 @@ def animate_climbing_in_ax(ax_anim, history, matrix):
     ani = FuncAnimation(fig, update, frames=len(history_arrs), interval=900, repeat=False, blit=False)
     return ani
 
-# --- 4. Ejecución Principal (Modificada) ---
+# --- 4. Ejecución Principal---
 
 if __name__ == "__main__":
 
@@ -230,8 +228,7 @@ if __name__ == "__main__":
     plt.subplots_adjust(wspace=0.3, hspace=0.35, top=0.92, bottom=0.1)
     fig_static.suptitle("Hill Climbing", fontsize=18, y=0.99)
 
-    # --- 2. Definir la función de reinicio (Callback) ---
-    # Esta función hará todo: simular, limpiar y repintar
+    # --- 2. Definir la función del botón ---
     def on_reset_clicked(event):
         
         # --- A. Correr la simulación ---
@@ -243,12 +240,11 @@ if __name__ == "__main__":
         print(f"Disposición Final:   {final_arrangement} (Score: {final_score})")
         print(f"Mejora encontrada en {len(history) - 1} iteraciones.")
         
-        # --- B. Limpiar TODOS los ejes ---
-        # (El inset_ax de la animación se elimina cuando su 'ax' padre es limpiado)
+        # --- B. Limpiar los ejes ---
         for ax in ax_static.flat:
             ax.clear()
 
-        # --- C. Repintar los gráficos estáticos (en tu layout) ---
+        # --- C. Generar las visualizaciones estáticas ---
         print("\nGenerando visualizaciones...")
         plot_heatmap(satisfaction_matrix, ax=ax_static[1, 2])
         plot_interaction_graph(satisfaction_matrix, ax=ax_static[0, 1])
@@ -263,8 +259,6 @@ if __name__ == "__main__":
         
         ani = animate_climbing_in_ax(ax_for_animation, history, satisfaction_matrix)
         
-        # *** IMPORTANTE: Guardar la referencia a 'ani' ***
-        # La adjuntamos a la figura para que no se pierda
         fig_static._animation_ref = ani
 
         # --- E. Guardar el GIF (sobrescribir el anterior) ---
