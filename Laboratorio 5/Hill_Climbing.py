@@ -4,6 +4,8 @@ import seaborn as sns
 import networkx as nx
 import random
 from matplotlib.animation import FuncAnimation
+# --- IMPORTAR EL WIDGET DE BOTÓN ---
+from matplotlib.widgets import Button
 import warnings
 
 # Configuración inicial
@@ -17,7 +19,6 @@ np.random.seed(42)
 def create_satisfaction_matrix(n_people):
     matrix = np.random.randint(0, 11, size=(n_people, n_people))
     np.fill_diagonal(matrix, 0)
-    # añadir algunos conflictos negativos aleatorios
     conflict_indices = np.random.choice(range(n_people * n_people), 5, replace=False)
     for idx in conflict_indices:
         i = idx // n_people
@@ -57,10 +58,8 @@ def hill_climbing(matrix):
         neighbors = get_neighbors(current_arrangement)
         scores = [calculate_total_satisfaction(nb, matrix) for nb in neighbors]
 
-        # --- 1. Filtrar solo los que mejoran ---
         better = [(nb, sc) for nb, sc in zip(neighbors, scores) if sc > current_score]
 
-        # --- 2. Si hay mejores, elegir UNO AL AZAR ---
         if len(better) > 0:
             nb, sc = random.choice(better)
             current_arrangement, current_score = nb, sc
@@ -81,14 +80,14 @@ def hill_climbing(matrix):
 
     return current_arrangement, current_score, history
 
-# --- 3. Visualización
+# --- 3. Visualización ---
 
 def plot_heatmap(matrix, ax):
     sns.heatmap(matrix, annot=True, fmt="d", cmap="vlag", center=0,
                 xticklabels=[f"P{i}" for i in range(len(matrix))],
                 yticklabels=[f"P{i}" for i in range(len(matrix))],
                 ax=ax)
-    ax.set_title("1. Matriz de Satisfacción", fontsize=12)
+    ax.set_title("Matriz de Satisfacción", fontsize=12)
     ax.set_xlabel("Persona 'j' (Vecino)")
     ax.set_ylabel("Persona 'i' (Quien siente)")
 
@@ -117,7 +116,7 @@ def plot_interaction_graph(matrix, ax):
             node_size=1400, font_size=10, font_weight='bold',
             width=edge_widths, edge_color=edge_colors,
             ax=ax)
-    ax.set_title("2. Gráfico de Interacciones", fontsize=12)
+    ax.set_title(" Interacciones", fontsize=12)
     ax.text(0.5, -0.08, "Verde=Buena Relación / Rojo=Mala", ha='center',
             transform=ax.transAxes, style='italic', fontsize=9)
 
@@ -133,10 +132,11 @@ def calculate_individual_satisfaction(person_id, arrangement, matrix):
 def plot_score_evolution(history, ax):
     scores = [score for arr, score in history]
     ax.plot(scores, marker='o', linestyle='-', color='b')
-    ax.set_title("4. Evolución de Satisfacción Total", fontsize=12)
+    ax.set_title(" Satisfacción Total", fontsize=12)
     ax.set_xlabel("Iteración")
     ax.set_ylabel("Satisfacción Total")
-    ax.set_xticks(range(len(scores)))
+    if scores: # Evitar error si la historia está vacía
+        ax.set_xticks(range(len(scores)))
     ax.grid(True, linestyle='--')
 
 def plot_circular_map(arrangement, matrix, title_text, ax):
@@ -179,14 +179,26 @@ def animate_climbing_in_ax(ax_anim, history, matrix):
 
     bbox = ax_anim.get_position()
     fig = ax_anim.figure
+    
+    # --- MODIFICACIÓN ---
+    # Eliminar el inset anterior si existe, antes de crear uno nuevo
+    if hasattr(ax_anim, '_inset_ax'):
+        try:
+            ax_anim._inset_ax.remove()
+        except:
+            pass # Ignorar si ya fue removido
+            
     inset_ax = fig.add_axes([bbox.x0 + bbox.width*0.05, bbox.y0 + bbox.height*0.02, bbox.width*0.45, bbox.height*0.28])
+    ax_anim._inset_ax = inset_ax # Guardar referencia al inset
+    # --- FIN MODIFICACIÓN ---
+    
     inset_ax.set_title("Score", fontsize=9)
     inset_ax.set_xlabel("Iter", fontsize=8)
     inset_ax.set_ylabel("Score", fontsize=8)
     inset_ax.grid(True, linestyle='--')
     inset_line, = inset_ax.plot([], [], marker='o', linestyle='-', color='b')
 
-    # precalcular rangos globales de satisfacción individual para color mapping
+    # precalcular rangos globales
     all_indiv_sats = [calculate_individual_satisfaction(p, arr, matrix) for arr in history_arrs for p in arr]
     global_min_sat = min(all_indiv_sats) if all_indiv_sats else 0
     global_max_sat = max(all_indiv_sats) if all_indiv_sats else 1
@@ -202,65 +214,78 @@ def animate_climbing_in_ax(ax_anim, history, matrix):
             labels[i].set_text(f"P{arrangement[i]}")
         inset_line.set_data(range(frame + 1), history_scores[:frame + 1])
         inset_ax.relim(); inset_ax.autoscale_view()
-        ax_anim.set_title(f"3. Animación (iter {frame})", fontsize=12)
+        ax_anim.set_title(f" Animación (iter {frame})", fontsize=12)
         return nodescat, *labels, inset_line
 
     ani = FuncAnimation(fig, update, frames=len(history_arrs), interval=900, repeat=False, blit=False)
     return ani
 
-# --- 4. Ejecución Principal ---
+# --- 4. Ejecución Principal (Modificada) ---
 
 if __name__ == "__main__":
-    satisfaction_matrix = create_satisfaction_matrix(NUM_PEOPLE)
-    final_arrangement, final_score, history = hill_climbing(satisfaction_matrix)
 
-    print("--- Proceso de Optimización (Hill Climbing) ---")
-    print(f"Disposición Inicial: {history[0][0]} (Score: {history[0][1]})")
-    print(f"Disposición Final:   {final_arrangement} (Score: {final_score})")
-    print(f"Mejora encontrada en {len(history) - 1} iteraciones.")
-    print("\nGenerando visualizaciones...")
-
-    # --- Dashboard (2x3) ---
+    # --- 1. Crear la GUI (Figura y Ejes) UNA SOLA VEZ ---
     fig_static, ax_static = plt.subplots(2, 3, figsize=(20, 12))
-    plt.subplots_adjust(wspace=0.3, hspace=0.35)
-
-    # 1) Heatmap
-    plot_heatmap(satisfaction_matrix, ax=ax_static[1, 2])
-
-    # 2) Gráfico de interacciones
-    plot_interaction_graph(satisfaction_matrix, ax=ax_static[0, 1])
-
-    # 4) Evolución score (también visible estáticamente en la celda 0,2)
-    plot_score_evolution(history, ax=ax_static[0, 2])
-
-    # 5a) Disposición inicial (circular)
-    plot_circular_map(history[0][0], satisfaction_matrix, " Diposición Inicial", ax=ax_static[1, 0])
-
-    # 5b) Disposición final (circular)
-    plot_circular_map(final_arrangement, satisfaction_matrix, "Disposición Final", ax=ax_static[1, 1])
-
-    # 3) Aquí colocamos la ANIMACIÓN dentro del último ax (1,2)
-    ax_for_animation = ax_static[0, 0]
-    # dejarlo limpio y con título (el contenido será animado)
-    ax_for_animation.set_title("Progreso Hill Climbing)", fontsize=12)
-    ax_for_animation.axis('off')
-
-    # Crear animación en ese ax
-    ani = animate_climbing_in_ax(ax_for_animation, history, satisfaction_matrix)
-
+    # Dejar espacio para el título y el botón
+    plt.subplots_adjust(wspace=0.3, hspace=0.35, top=0.92, bottom=0.1)
     fig_static.suptitle("Hill Climbing", fontsize=18, y=0.99)
 
-    # --- *** INICIO DE LA MODIFICACIÓN *** ---
-    
-    print("\nGuardando animación como 'dashboard_animado.gif'...")
-    print("Esto puede tardar unos segundos...")
-    
-    # Guarda el GIF antes de mostrar la ventana
-    # fps=1.1 es aprox 1 / 0.9s (interval=900ms)
-    ani.save("dashboard_animado.gif", writer='pillow', fps=1.1) 
-    
-    print("¡GIF guardado exitosamente!")
-    
+    # --- 2. Definir la función de reinicio (Callback) ---
+    # Esta función hará todo: simular, limpiar y repintar
+    def on_reset_clicked(event):
+        
+        # --- A. Correr la simulación ---
+        satisfaction_matrix = create_satisfaction_matrix(NUM_PEOPLE)
+        final_arrangement, final_score, history = hill_climbing(satisfaction_matrix)
+
+        print("--- Proceso de Optimización (Hill Climbing) ---")
+        print(f"Disposición Inicial: {history[0][0]} (Score: {history[0][1]})")
+        print(f"Disposición Final:   {final_arrangement} (Score: {final_score})")
+        print(f"Mejora encontrada en {len(history) - 1} iteraciones.")
+        
+        # --- B. Limpiar TODOS los ejes ---
+        # (El inset_ax de la animación se elimina cuando su 'ax' padre es limpiado)
+        for ax in ax_static.flat:
+            ax.clear()
+
+        # --- C. Repintar los gráficos estáticos (en tu layout) ---
+        print("\nGenerando visualizaciones...")
+        plot_heatmap(satisfaction_matrix, ax=ax_static[1, 2])
+        plot_interaction_graph(satisfaction_matrix, ax=ax_static[0, 1])
+        plot_score_evolution(history, ax=ax_static[0, 2])
+        plot_circular_map(history[0][0], satisfaction_matrix, " Diposición Inicial", ax=ax_static[1, 0])
+        plot_circular_map(final_arrangement, satisfaction_matrix, "Disposición Final", ax=ax_static[1, 1])
+
+        # --- D. Repintar la animación (en tu layout) ---
+        ax_for_animation = ax_static[0, 0]
+        ax_for_animation.set_title("Progreso Hill Climbing)", fontsize=12)
+        ax_for_animation.axis('off') # Re-aplicar 'axis off'
+        
+        ani = animate_climbing_in_ax(ax_for_animation, history, satisfaction_matrix)
+        
+        # *** IMPORTANTE: Guardar la referencia a 'ani' ***
+        # La adjuntamos a la figura para que no se pierda
+        fig_static._animation_ref = ani
+
+        # --- E. Guardar el GIF (sobrescribir el anterior) ---
+        print("\nGuardando animación como 'dashboard_animadoV1.gif'...")
+        ani.save("dashboard_animadoV1.gif", writer='pillow', fps=1.1)
+        print("¡GIF guardado exitosamente!")
+
+        # --- F. Redibujar el canvas ---
+        fig_static.canvas.draw_idle()
+        print("Dashboard actualizado.")
+
+    # --- 3. Crear el Botón ---
+    ax_button = plt.axes([0.4, 0.02, 0.2, 0.05]) # [izquierda, abajo, ancho, alto]
+    btn_reset = Button(ax_button, 'Reiniciar Simulación')
+    btn_reset.on_clicked(on_reset_clicked)
+    # Guardar referencia al botón también
+    fig_static._button_ref = btn_reset
+
+    # --- 4. Carga Inicial ---
+    print("Generando simulación inicial...")
+    on_reset_clicked(None) # Llamar una vez para la carga inicial
+
+    # --- 5. Mostrar la GUI ---
     plt.show()
-    
-    _ANIMATION_REF = ani
