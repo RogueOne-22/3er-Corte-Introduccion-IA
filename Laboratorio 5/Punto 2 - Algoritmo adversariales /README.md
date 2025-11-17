@@ -17,11 +17,6 @@ Este proyecto implementa un **algoritmo voraz** aplicado al problema  de dar cam
 ```bash
 pip install matplotlib
 ```
-La aplicación se abrirá con una interfaz gráfica que muestra:
-- Una animación del proceso de entrega de cambio
-- Un panel lateral con información del proceso
-- Un botón para generar nuevos casos aleatorios
-
 ![example](Adversarial.png)
 
 ## 🎨 Denominaciones de Monedas
@@ -57,7 +52,8 @@ Para un monto de **87**:
 
 **Total: 6 monedas**
 
-vscode-remote://codespaces%2Bobscure-succotash-pjv9g75r5xwf7g57/workspaces/3er-Corte-Introduccion-IA/Laboratorio%205/Punto%202%20-%20Algoritmo%20adversariales%20/Adversarial.mp4
+
+https://github.com/user-attachments/assets/4e2da615-eab5-43f4-b20e-591fc29c0fdc
 
 ##  Posibles mejoras:
 - Agregar diferentes sistemas monetarios
@@ -67,8 +63,6 @@ vscode-remote://codespaces%2Bobscure-succotash-pjv9g75r5xwf7g57/workspaces/3er-C
 Este código es de uso educativo y puede ser modificado libremente.
 
 ---
-
-**Desarrollado con** 🐍 Python y 📊 Matplotlib
 
 ## ✨ Autor
 
