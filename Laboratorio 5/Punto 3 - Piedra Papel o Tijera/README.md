@@ -103,9 +103,10 @@ Clases y funciones separadas, mayor modularidad.
 ✅ Predecir probabilísticamente la próxima acción
 ✅ Contraatacar óptimamente basándose en la predicción
 
-<video controls src="Piedra Papel o Tijera Markov.mp4" title="video"></video>
 
-# ✨ Autor 
-## Paula S
+https://github.com/user-attachments/assets/7ff730b0-6046-486d-91a9-9ec3efc3183e
+
+## ✨ Autor 
+### Paula S
 
  
